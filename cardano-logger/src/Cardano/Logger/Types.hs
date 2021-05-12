@@ -7,6 +7,8 @@ module Cardano.Logger.Types
   , LogObjects
   , Metrics
   , NodeId (..)
+  , NodeName
+  , getNodeName
   , addressToNodeId
   , initAcceptedItems
   , prepareAcceptedItems
@@ -29,6 +31,13 @@ import           Trace.Forward.Protocol.Type (NodeInfoStore)
 
 import           System.Metrics.Store.Acceptor (MetricsLocalStore, emptyMetricsLocalStore)
 
+-- | Human-readable name of node.
+type NodeName = Text
+
+getNodeName :: NodeInfoStore -> IO (Maybe NodeName)
+getNodeName niStore = lookup "NodeName" <$> readIORef niStore
+
+-- | It is assumed that the node can be uniquely identified by its IP:port.
 data NodeId = NodeId
   { nodeIP   :: !String
   , nodePort :: !Word16

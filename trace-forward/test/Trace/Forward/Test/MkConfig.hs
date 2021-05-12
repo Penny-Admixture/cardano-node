@@ -36,6 +36,6 @@ mkForwarderConfig endpoint =
   ForwarderConfiguration
     { forwarderTracer  = nullTracer
     , acceptorEndpoint = endpoint
-    , nodeBasicInfo    = return [("nodeName", "node-1")]
+    , nodeBasicInfo    = return [("NodeName", "node-1")]
     , actionOnRequest  = const $ return ()
     }

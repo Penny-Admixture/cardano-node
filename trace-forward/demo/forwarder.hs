@@ -37,7 +37,7 @@ main = do
         ForwarderConfiguration
           { forwarderTracer  = contramap show stdoutTracer
           , acceptorEndpoint = howToConnect
-          , nodeBasicInfo    = return [("nodeName", "node-1")]
+          , nodeBasicInfo    = return [("NodeName", "node-1")]
           , actionOnRequest  = print -- const (return ())
           }
 

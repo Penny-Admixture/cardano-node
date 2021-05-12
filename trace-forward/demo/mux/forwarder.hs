@@ -79,7 +79,7 @@ mkConfigs howToConnect freq benchFillFreq = (ekgConfig, tfConfig)
     TF.ForwarderConfiguration
       { TF.forwarderTracer  = if benchMode then nullTracer else contramap show stdoutTracer
       , TF.acceptorEndpoint = forTF howToConnect
-      , TF.nodeBasicInfo    = return [("nodeName", "node-1")]
+      , TF.nodeBasicInfo    = return [("NodeName", "node-1")]
       , TF.actionOnRequest  = const (return ())
       }
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Cardano.Logger.Handlers.Logs.Run
   ( runLogsHandler
@@ -11,9 +12,10 @@ import           Control.Monad (forM_, forever)
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (readIORef)
 import           Data.List (intercalate)
+import qualified Data.Text as T
 
 import           Cardano.Logger.Configuration
-import           Cardano.Logger.Types (AcceptedItems, NodeId)
+import           Cardano.Logger.Types (AcceptedItems, NodeId, NodeName, getNodeName)
 
 runLogsHandler
   :: LoggerConfig
@@ -22,8 +24,9 @@ runLogsHandler
 runLogsHandler config acceptedItems = forever $ do
   threadDelay 2000000
   items <- HM.toList <$> readIORef acceptedItems
-  forM_ items $ \(nodeId, (_niStore, loQueue, _)) ->
-    atomically (getAllLogObjects loQueue) >>= writeLogObjects config nodeId
+  forM_ items $ \(nodeId, (niStore, loQueue, _)) -> do
+    nodeName <- maybe "" id <$> getNodeName niStore
+    atomically (getAllLogObjects loQueue) >>= writeLogObjects config nodeId nodeName
 
 getAllLogObjects :: TBQueue lo -> STM [lo]
 getAllLogObjects loQueue =
@@ -35,10 +38,14 @@ writeLogObjects
   :: Show lo
   => LoggerConfig
   -> NodeId
+  -> NodeName
   -> [lo]
   -> IO ()
-writeLogObjects _ _ [] = return ()
-writeLogObjects _config nodeId logObjects =
+writeLogObjects _ _ _ [] = return ()
+writeLogObjects _config nodeId nodeName logObjects =
   appendFile fileName . intercalate "\n" . map show $ logObjects
  where
-  fileName = "/tmp/cardano-logger-test-" <> show nodeId <> ".log"
+  fileName = "/tmp/cardano-logger-test-" <> nodeFullId <> ".log"
+  nodeFullId = if T.null nodeName
+                 then show nodeId
+                 else T.unpack nodeName <> "-" <> show nodeId
