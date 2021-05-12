@@ -60,14 +60,31 @@ import           Ouroboros.Network.Protocol.LocalStateQuery.Type as LocalStateQu
                    (AcquireFailure (..))
 import qualified Shelley.Spec.Ledger.API.Protocol as Ledger
 import           Cardano.Ledger.Coin
-import           Shelley.Spec.Ledger.EpochBoundary
+import Shelley.Spec.Ledger.EpochBoundary
+    ( SnapShot(SnapShot, _delegations, _stake),
+      SnapShots(SnapShots),
+      Stake(Stake, unStake),
+      poolStake )
 import           Shelley.Spec.Ledger.Keys (KeyHash (..), KeyRole (..))
 import           Shelley.Spec.Ledger.LedgerState hiding (_delegations)
 import           Shelley.Spec.Ledger.Scripts ()
 import Text.Printf(printf)
+import Data.SOP.Strict
+import Cardano.Chain.Genesis
+    ( Config(configGenesisData), GenesisData(gdStartTime) ) 
+import Cardano.Slotting.Time
+    ( SystemStart(getSystemStart))
 
+import Ouroboros.Consensus.HardFork.Combinator.Basics
+    ( HardForkLedgerConfig(..) )
+import Ouroboros.Consensus.HardFork.Combinator.AcrossEras
+ (      PerEraLedgerConfig(getPerEraLedgerConfig) )
+import Ouroboros.Consensus.HardFork.Combinator.PartialConfig
+    ( WrapPartialLedgerConfig(unwrapPartialLedgerConfig) )
+import Ouroboros.Consensus.Cardano.CanHardFork (ByronPartialLedgerConfig(..))
 
 import qualified Ouroboros.Consensus.HardFork.History.Qry as Qry
+import qualified Ouroboros.Consensus.HardFork.Combinator.PartialConfig as PC
 
 import qualified Data.Text.IO as T
 import qualified System.IO as IO
@@ -223,6 +240,8 @@ runQueryTip (AnyConsensusModeParams cModeParams) network mOutFile = do
 
   systemStart <- mSystemStartQuery anyEra consensusMode localNodeConnInfo
 
+  systemStart2 <- mStartTime consensusMode localNodeConnInfo
+
   nowSeconds <- toRelativeTime systemStart <$> liftIO getCurrentTime
 
   let tolerance = RelativeTime (secondsToNominalDiffTime 600)
@@ -234,6 +253,8 @@ runQueryTip (AnyConsensusModeParams cModeParams) network mOutFile = do
         . toObject "tipTime" (Just jsonTipTime)
         . toObject "now" (Just (relativeTimeSeconds nowSeconds))
         . toObject "syncProgress" (Just jsonSyncProgress)
+        . toObject "systemStart1" (Just (getSystemStart systemStart))
+        . toObject "systemStart2" (Just systemStart2)
         $ toJSON tip
 
   case mOutFile of
@@ -261,19 +282,20 @@ runQueryTip (AnyConsensusModeParams cModeParams) network mOutFile = do
 
       mode -> left (ShelleyQueryCmdUnsupportedMode (AnyConsensusMode mode))
 
-    mPartialLedgerConfig
-      :: AnyCardanoEra
-      -> ConsensusMode mode
+    mStartTime
+      :: forall mode . ConsensusMode mode
       -> LocalNodeConnectInfo mode
-      -> SlotNo
-      -> ExceptT ShelleyQueryCmdError IO (Either Qry.PastHorizonException (RelativeTime, SlotLength))
-    mPartialLedgerConfig _ cMode lNodeConnInfo slotNo = case cMode of
+      -> ExceptT ShelleyQueryCmdError IO UTCTime
+    mStartTime cMode lNodeConnInfo = case cMode of
       CardanoMode -> do
         let epochQuery = QueryPartialLedgerConfig CardanoModeIsMultiEra  -- QueryInShelleyBasedEra sbe QueryEpoch
         eResult <- liftIO $ queryNodeLocalState lNodeConnInfo Nothing epochQuery
         case eResult of
           Left acqFail -> left (ShelleyQueryCmdGeneric (show acqFail))
-          Right eraHistory -> return $ getProgress slotNo eraHistory
+          Right plc -> case getPerEraLedgerConfig (hardForkLedgerConfigPerEra (PC.unwrapPartialLedgerConfig plc)) of
+            perEraLedgerConfig -> case perEraLedgerConfig of
+              byronLC :* _ -> case byronLedgerConfig (unwrapPartialLedgerConfig byronLC) of
+                x -> return (gdStartTime (configGenesisData x))
 
       mode -> left (ShelleyQueryCmdGeneric ("Not cardano mode: " <> show mode))
 

@@ -391,7 +391,7 @@ convLocalNodeClientProtocols
       localTxSubmissionClientForBlock = convLocalTxSubmissionClient mode <$>
                                           localTxSubmissionClient,
 
-      localStateQueryClientForBlock   = mapQueryOnLocalStateQueryClient Consensus.BlockQuery . convLocalStateQueryClient mode <$>
+      localStateQueryClientForBlock   = mapQueryOnLocalStateQueryClient id . convLocalStateQueryClient mode <$>
                                           localStateQueryClient
     }
 
@@ -441,7 +441,7 @@ convLocalStateQueryClient
   => ConsensusMode mode
   -> LocalStateQueryClient (BlockInMode mode) ChainPoint (QueryInMode mode) m a
   -> LocalStateQueryClient block (Consensus.Point block)
-                           (Consensus.BlockQuery block) m a
+                           (Consensus.Query block) m a
 convLocalStateQueryClient mode =
     Net.Query.mapLocalStateQueryClient
       (toConsensusPointInMode mode)
