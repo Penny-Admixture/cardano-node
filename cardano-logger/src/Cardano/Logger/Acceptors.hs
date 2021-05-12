@@ -176,8 +176,8 @@ doListenToForwarder snocket
         UnversionedProtocol
         UnversionedProtocolData
         (SomeResponderApplication $ acceptorApp
-          [ (runEKGAcceptor        ekgConfig acceptedItems, 1)
-          , (runLogObjectsAcceptor tfConfig  acceptedItems, 2)
+          [ -- (runEKGAcceptor        ekgConfig acceptedItems, 1)
+            (runLogObjectsAcceptor tfConfig  acceptedItems, 1)
           ]
         )
       )
