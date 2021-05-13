@@ -14,7 +14,7 @@
     {
       "logRoot": "logs",
       "logMode": "FileMode",
-      "logFormat": "AsText"
+      "logFormat": "AsJSON"
     }
   ],
   "rotation": null

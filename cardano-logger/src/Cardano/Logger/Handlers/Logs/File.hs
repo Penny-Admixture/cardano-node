@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano.Logger.Handlers.Logs.File
@@ -8,12 +9,13 @@ module Cardano.Logger.Handlers.Logs.File
   ) where
 
 import           Control.Exception (IOException, try)
-import           Data.Aeson (ToJSON, Value (..), toJSON)
+import           Data.Aeson (ToJSON, Value (..), (.=), object, toJSON)
 import           Data.Aeson.Text (encodeToLazyText)
 import           Data.Char (isDigit)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TLIO
+import           Data.Time.Clock (UTCTime)
 import           Data.Time.Format (defaultTimeLocale, formatTime)
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath.Posix ((</>), (<.>))
@@ -83,7 +85,7 @@ loToText (LogObject loname lometa loitem) =
       (LogStructured o) -> encodeToLazyText o
       (LogStructuredText _o m) -> TL.fromStrict m
       (LogValue name' value) ->
-        if name' == ""
+        if T.null name'
           then TL.pack (show value)
           else TL.fromStrict name' <> " = " <> TL.pack (show value)
       (ObserveDiff _) -> encodeToLazyText loitem
@@ -94,28 +96,32 @@ loToText (LogObject loname lometa loitem) =
       KillPill -> ""
       Command _ -> ""
 
+data LogObjectForJSON = LogObjectForJSON
+  { jAt   :: !UTCTime
+  , jNS   :: !T.Text
+  , jData :: !Value
+  , jHost :: !T.Text
+  , jSev  :: !T.Text
+  , jTId  :: !T.Text
+  }
+
+instance ToJSON LogObjectForJSON where
+  toJSON LogObjectForJSON{..} =
+    object [ "at"     .= formatTime defaultTimeLocale "%FT%T%2Q%Z" jAt
+           , "ns"     .= jNS
+           , "data"   .= jData
+           , "host"   .= jHost
+           , "sev"    .= jSev
+           , "thread" .= jTId
+           ]
+
 loToJSON :: ToJSON a => LogObject a -> TL.Text
-loToJSON = encodeToLazyText
-
-{-
-
-{
-	"at": "2020-08-31T19:26:20.33Z",
-	"env": "1.19.0:42dba",
-	"ns": ["cardano.node"],
-	"data": {
-		"kind": "LogMessage",
-		"message": "tracing verbosity = normal verbosity "
-	},
-	"app": [],
-	"msg": "",
-	"pid": "9029",
-	"loc": null,
-	"host": "nixos",
-	"sev": "Debug",
-	"thread": "5"
-}
-
-
--}
-
+loToJSON (LogObject loname lometa loitem) = encodeToLazyText $
+  LogObjectForJSON
+    { jAt   = tstamp lometa
+    , jNS   = loname
+    , jData = toJSON loitem
+    , jHost = hostname lometa
+    , jSev  = T.pack . show . severity $ lometa
+    , jTId  = T.filter isDigit (T.pack . show . tid $ lometa)
+    }

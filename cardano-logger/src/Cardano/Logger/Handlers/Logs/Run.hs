@@ -14,6 +14,7 @@ import           Control.Monad (forM_, forever)
 import           Data.Aeson (ToJSON)
 import qualified Data.HashMap.Strict as HM
 import           Data.IORef (readIORef)
+import           Data.Maybe (fromMaybe)
 
 import           Cardano.BM.Data.LogItem (LogObject)
 
@@ -38,7 +39,7 @@ handleItemsFromNode
   -> (NodeId, (NodeInfoStore, LogObjects, Metrics))
   -> IO ()
 handleItemsFromNode config (nodeId, (niStore, loQueue, _)) = do
-  nodeName <- maybe "" id <$> getNodeName niStore
+  nodeName <- fromMaybe "" <$> getNodeName niStore
   atomically (getAllLogObjects loQueue) >>= writeLogObjects config nodeId nodeName
 
 getAllLogObjects :: TBQueue lo -> STM [lo]
