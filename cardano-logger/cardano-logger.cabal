@@ -41,6 +41,7 @@ library
                        Cardano.Logger.Run
                        Cardano.Logger.Types
 
+                       Cardano.Logger.Handlers.Logs.File
                        Cardano.Logger.Handlers.Logs.Run
                        Cardano.Logger.Handlers.Metrics.Run
 
@@ -51,8 +52,10 @@ library
                        , bytestring
                        , cborg
                        , contra-tracer
+                       , directory
                        , ekg-core
                        , ekg-forward
+                       , filepath
                        , hashable
                        , iohk-monitoring
                        , network

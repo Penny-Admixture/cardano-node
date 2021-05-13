@@ -6,26 +6,16 @@
       3000
     ]
   },
-  "setupScribes": [
-    {
-      "scMaxSev": "Emergency",
-      "scName": "stdout",
-      "scRotation": null,
-      "scMinSev": "Notice",
-      "scKind": "StdoutSK",
-      "scFormat": "ScText",
-      "scPrivacy": "ScPublic"
-    }
-  ],
-  "defaultScribes": [
-    [
-      "StdoutSK",
-      "stdout"
-    ]
-  ],
   "loRequestNum": 1,
   "ekgRequestFreq": 1,
   "hasEKG": null,
   "hasPrometheus": null,
+  "logging": [
+    {
+      "logRoot": "logs",
+      "logMode": "FileMode",
+      "logFormat": "AsText"
+    }
+  ],
   "rotation": null
 }
