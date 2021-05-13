@@ -806,14 +806,34 @@ pGovernanceCmd =
                 pSIPNew = cmdWithInfo "new" pSIPNewOpts "Create a new SIP"
                   where
                     pSIPNewOpts =
-                      SIPNew <$> pStakeVerificationKeyFile <*> pPropText
+                      SIPNew <$> pStakeVerificationKeyFile <*> pPropText <*> pVPD
                 pSIPReveal = cmdWithInfo "reveal" pOpts "Reveal an SIP"
                   where
                     pOpts =
-                      SIPReveal <$> pStakeVerificationKeyFile <*> pPropText
+                      SIPReveal <$> pStakeVerificationKeyFile <*> pPropText <*> pVPD
                 pSIPVote = cmdWithInfo "vote" pOpts "Vote for an SIP"
                   where
-                    pOpts = SIPVote <$> pStakeVerificationKeyFile <*> pPropText
+                    pOpts = SIPVote <$> pStakeVerificationKeyFile <*> pPropText <*> pVPD
+                pVPD =
+                  fmap SlotNo $
+                  Opt.option
+                    Opt.auto
+                      (  Opt.long "voting-period-duration"
+                      <> Opt.metavar "DURATION"
+                      <> Opt.help "Voting period duration"
+                      <> Opt.value defaultVPD
+                      )
+                  where
+                    defaultVPD = 600
+                    -- fixme: this is fragile as it depends on the protocol
+                    -- global constants.
+                    --
+                    -- We chose the security parameter to be 10, and the active
+                    -- slot coefficient to be 0.1, so the stabilityWindow
+                    -- becomes
+                    --
+                    -- > 3 * 10 / 0.1 = 300
+
             pPropText
               =   Text.pack
               <$> Opt.strOption
